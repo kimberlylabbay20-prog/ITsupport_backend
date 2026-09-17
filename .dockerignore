@@ -1,0 +1,48 @@
+# Exclude files/directories from the Docker build context.
+
+# Environment variables (real secrets)
+.env
+**/.env
+.env.local
+**/.env.local
+.env.*.local
+**/.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Python
+.venv
+**/.venv
+venv
+**/venv
+env
+**/env
+__pycache__
+**/__pycache__
+*.py[cod]
+**/*.py[cod]
+*.pyo
+**/*.pyo
+*.egg-info
+**/*.egg-info
+
+# Node / Frontend (not part of the backend image)
+node_modules
+**/node_modules
+frontend
+**/dist
+frontend/dist
+dist
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml

@@ -1,0 +1,105 @@
+# IT Support Desk - backend Docker stack
+#
+# Services: FastAPI (api), PostgreSQL (postgres), MongoDB (mongodb).
+#
+# Real credentials/secrets are NOT hardcoded here. They are injected at
+# runtime from ./ITSupport/.env via env_file (that file is Git-ignored and
+# excluded from the image build context by .dockerignore). The api/db-init
+# services override only the DB hostnames so containers reach the database
+# services by their compose service name instead of localhost.
+
+name: itsupport
+
+x-backend: &backend
+  image: itsupport-backend:latest
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: itsupport-postgres
+    restart: unless-stopped
+    env_file:
+      - ./ITSupport/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - itsupport-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  mongodb:
+    image: mongo:7
+    container_name: itsupport-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - itsupport-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  db-init:
+    <<: *backend
+    container_name: itsupport-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - ./ITSupport/.env
+    environment:
+      POSTGRES_HOST: postgres
+      MONGO_URI: mongodb://mongodb:27017
+    networks:
+      - itsupport-net
+    command: ["python", "init_db.py"]
+    restart: "no"
+
+  api:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: itsupport-api
+    restart: unless-stopped
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    env_file:
+      - ./ITSupport/.env
+    environment:
+      POSTGRES_HOST: postgres
+      MONGO_URI: mongodb://mongodb:27017
+    ports:
+      - "8000:8000"
+    networks:
+      - itsupport-net
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/docs', timeout=3).status == 200 else 1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+volumes:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  itsupport-net:
+    driver: bridge
