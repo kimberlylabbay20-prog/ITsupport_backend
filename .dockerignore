@@ -31,9 +31,9 @@ __pycache__
 # Node / Frontend (not part of the backend image)
 node_modules
 **/node_modules
-frontend
+admin_dashboard
 **/dist
-frontend/dist
+admin_dashboard/dist
 dist
 *.tsbuildinfo
 

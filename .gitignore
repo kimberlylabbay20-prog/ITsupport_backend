@@ -15,7 +15,7 @@ env/
 
 # Node / Frontend
 node_modules/
-frontend/dist/
+admin_dashboard/dist/
 *.tsbuildinfo
 
 # IDE
